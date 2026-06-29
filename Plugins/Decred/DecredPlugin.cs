@@ -34,12 +34,12 @@ public class DecredPlugin : BaseBTCPayServerPlugin
             CryptoCode = "DCR",
             DisplayName = "Decred",
             Divisibility = 8,
-            CryptoImagePath = "Resources/img/decred.svg",
+            CryptoImagePath = "decred.svg",
             UriScheme = "decred",
             DefaultRateRules =
             [
-                "DCR_X = DCR_BTC * BTC_X",
-                "DCR_BTC = poloniex(DCR_BTC)"
+                "DCR_X = DCR_USD * USD_X",
+                "DCR_USD = kraken(DCR_USD)"
             ]
         };
 

@@ -1,6 +1,7 @@
 @using BTCPayServer.Payments
 @using BTCPayServer.Plugins.Decred.Payments
 @using BTCPayServer.Services.Invoices
+@inject BTCPayServer.Services.TransactionLinkProviders TransactionLinkProviders
 @{
     var paymentEntities = Model as IEnumerable<PaymentEntity>;
     if (paymentEntities == null) return;
@@ -15,12 +16,16 @@
     var data = payment.Details?.ToObject<DecredLikePaymentData>();
     if (data == null) continue;
 
+    var txLink = string.IsNullOrEmpty(data.TransactionId)
+        ? null
+        : TransactionLinkProviders.GetTransactionLink(pmi, data.TransactionId);
+
     <div class="transaction-info">
         <span class="badge bg-info">DCR</span>
         <span>@payment.Value DCR</span>
-        @if (!string.IsNullOrEmpty(data.TransactionId))
+        @if (!string.IsNullOrEmpty(txLink))
         {
-            <a href="https://dcrdata.decred.org/tx/@data.TransactionId"
+            <a href="@txLink"
                target="_blank" rel="noreferrer noopener"
                class="text-break">@data.TransactionId</a>
         }

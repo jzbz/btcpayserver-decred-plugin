@@ -56,26 +56,15 @@ public class DecredLikeSummaryUpdaterHostedService : IHostedService, IDisposable
                         });
                     }
 
-                    // Publish a block event on every poll cycle so the listener
-                    // checks for new payments, even without external notifications.
+                    // Trigger a payment re-check on every poll cycle so the listener
+                    // catches payments even without external notifications: a block
+                    // event when the chain advanced, otherwise a synthetic tx poll to
+                    // pick up still-unconfirmed transactions.
                     if (nowAvailable)
                     {
-                        _eventAggregator.Publish(new DecredEvent
-                        {
-                            CryptoCode = cryptoCode,
-                            BlockHash = currentHeight != previousHeight ? "poll" : null
-                        });
-
-                        // Also trigger a general check even if no new block,
-                        // to catch unconfirmed transactions.
-                        if (currentHeight == previousHeight)
-                        {
-                            _eventAggregator.Publish(new DecredEvent
-                            {
-                                CryptoCode = cryptoCode,
-                                TransactionHash = "poll"
-                            });
-                        }
+                        _eventAggregator.Publish(currentHeight != previousHeight
+                            ? new DecredEvent { CryptoCode = cryptoCode, BlockHash = "poll" }
+                            : new DecredEvent { CryptoCode = cryptoCode, TransactionHash = "poll" });
                     }
                 }
 

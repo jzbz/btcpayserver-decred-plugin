@@ -15,7 +15,7 @@ public class DecredRpcProvider
 {
     readonly ImmutableDictionary<string, JsonRpcClient> _walletClients;
     readonly ILogger<DecredRpcProvider> _logger;
-    readonly Dictionary<string, DecredLikeSummary> _summaries = new();
+    readonly ConcurrentDictionary<string, DecredLikeSummary> _summaries = new();
 
     public class DecredDaemonStateChange
     {

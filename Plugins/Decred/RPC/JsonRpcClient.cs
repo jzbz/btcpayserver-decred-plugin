@@ -35,7 +35,20 @@ public class JsonRpcClient
         var content = new StringContent(request.ToString(Formatting.None), Encoding.UTF8, "application/json");
         var response = await _httpClient.PostAsync(_rpcUri, content, cancellationToken);
         var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
-        var responseJson = JObject.Parse(responseString);
+
+        JObject responseJson;
+        try
+        {
+            responseJson = JObject.Parse(responseString);
+        }
+        catch (JsonReaderException)
+        {
+            // dcrwallet returns JSON-RPC errors as JSON, but transport-level
+            // failures (bad credentials, wrong endpoint) come back as plain text.
+            var body = responseString.Length > 200 ? responseString[..200] : responseString;
+            throw new JsonRpcException((int)response.StatusCode,
+                $"Non-JSON response from wallet (HTTP {(int)response.StatusCode}): {body}");
+        }
 
         if (responseJson["error"] != null && responseJson["error"].Type != JTokenType.Null)
         {

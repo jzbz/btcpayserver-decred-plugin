@@ -39,11 +39,15 @@ public class DecredLikePaymentMethodHandler : IPaymentMethodHandler
             return Task.CompletedTask;
         }
 
+        var config = ParsePaymentMethodConfig(context.PaymentMethodConfig) as DecredPaymentPromptDetails
+            ?? new DecredPaymentPromptDetails();
+        var account = string.IsNullOrWhiteSpace(config.AccountName) ? "default" : config.AccountName;
+
         context.State = new Prepare(
             ReservedAddress: Task.Run(async () =>
             {
                 return await walletClient.SendCommandAsync<string>(
-                    "getnewaddress", ["default", "ignore"]);
+                    "getnewaddress", [account, "ignore"]);
             })
         );
 

@@ -93,30 +93,6 @@ public class ListTransactionsEntry
     public int Vout { get; set; }
 }
 
-public class SyncStatusResponse
-{
-    [JsonProperty("synced")]
-    public bool Synced { get; set; }
-
-    [JsonProperty("initialblockdownload")]
-    public bool InitialBlockDownload { get; set; }
-
-    [JsonProperty("headersfetchprogress")]
-    public double HeadersFetchProgress { get; set; }
-}
-
-public class EstimateSmartFeeResponse
-{
-    [JsonProperty("feerate")]
-    public decimal FeeRate { get; set; }
-
-    [JsonProperty("errors")]
-    public List<string> Errors { get; set; }
-
-    [JsonProperty("blocks")]
-    public int Blocks { get; set; }
-}
-
 public class GetBalanceResponse
 {
     [JsonProperty("balances")]

@@ -1,6 +1,6 @@
 # BTCPay Server Decred Plugin
 
-A [BTCPay Server](https://github.com/btcpayserver/btcpayserver) plugin that enables receiving payments via [Decred](https://decred.org/).
+A [BTCPay Server](https://github.com/btcpayserver/btcpayserver) plugin by the [Decred project](https://github.com/decred) that enables receiving payments via [Decred](https://decred.org/).
 
 The plugin talks directly to `dcrwallet` (in SPV mode) via JSON-RPC. No dcrd node, NBitcoin, or NBXplorer required.
 
@@ -22,13 +22,15 @@ If you already run BTCPay Server via [btcpayserver-docker](https://github.com/bt
 
    Set a passphrase and **save the seed phrase** - this is the wallet backup. To restore an existing wallet, answer "yes" when asked if you have an existing seed.
 
-3. Enable Decred and start the wallet. The passphrase is required so dcrwallet can unlock at startup:
+3. Enable Decred and start the wallet. The wallet passphrase must be written to the deployment's `.env` file (not just exported) so `dcrwallet` can unlock on every start. `btcpay-setup.sh` persists only its own known variables, but it re-reads `$BTCPAY_BASE_DIRECTORY/.env` on every (re)start - so a plain `export` of a custom variable does not survive, and the wallet container ends up with an empty passphrase:
 
    ```bash
+   echo 'BTCPAY_DCR_WALLET_PASSPHRASE=your-wallet-passphrase' >> "$BTCPAY_BASE_DIRECTORY/.env"
    export BTCPAYGEN_CRYPTO2=dcr
-   export BTCPAY_DCR_WALLET_PASSPHRASE="your-wallet-passphrase"
    . btcpay-setup.sh -i
    ```
+
+   Use the exact passphrase you set in step 2, and avoid `$`, backticks, or quotes in it (they break shell/compose interpolation).
 
    This starts a `dcrwallet` container in SPV mode alongside your existing stack. It will sync headers and blocks from the Decred P2P network.
 

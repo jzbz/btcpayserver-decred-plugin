@@ -9,7 +9,7 @@ services:
   dcrwallet:
     restart: unless-stopped
     container_name: btcpayserver_dcrwallet
-    image: ghcr.io/bisoncraft/decred:2.1.5
+    image: ${BTCPAY_DCR_IMAGE:-ghcr.io/decred/decred:2.1.5}
     command:
       - dcrwallet
       - --spv

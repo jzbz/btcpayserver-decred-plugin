@@ -17,7 +17,7 @@ If you already run BTCPay Server via [btcpayserver-docker](https://github.com/bt
    ```bash
    cd "$BTCPAY_BASE_DIRECTORY/btcpayserver-docker"
    docker run -it --rm -v generated_dcr_wallet:/root/.dcrwallet \
-     ghcr.io/bisoncraft/decred:2.1.5 dcrwallet --create
+     "${BTCPAY_DCR_IMAGE:-ghcr.io/decred/decred:2.1.5}" dcrwallet --create
    ```
 
    Set a passphrase and **save the seed phrase** - this is the wallet backup. To restore an existing wallet, answer "yes" when asked if you have an existing seed.
@@ -31,6 +31,8 @@ If you already run BTCPay Server via [btcpayserver-docker](https://github.com/bt
    ```
 
    This starts a `dcrwallet` container in SPV mode alongside your existing stack. It will sync headers and blocks from the Decred P2P network.
+
+   By default this pulls the official `ghcr.io/decred/decred` image. To use a different build (e.g. your own fork's image), `export BTCPAY_DCR_IMAGE=ghcr.io/<owner>/decred:2.1.5` before running setup - it is also honored by the wallet-creation command above.
 
 4. Install the plugin from your BTCPay Server admin panel under **Server Settings > Plugins**. Search for "Decred" and click Install.
 

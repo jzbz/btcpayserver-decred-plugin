@@ -7,12 +7,15 @@ on:
   workflow_dispatch:
     inputs:
       decred_version:
-        description: 'Decred version to build (e.g. 2.1.5)'
-        required: true
-        default: '2.1.5'
+        description: 'Decred version to build (overrides DECRED_VERSION, e.g. 2.1.5)'
+        required: false
 
 env:
   REGISTRY: ghcr.io
+  # Single source of truth for the Decred release packaged into the image.
+  # This is the Decred version, NOT the plugin version - bump it when Decred
+  # ships a new release (or override per-run via workflow_dispatch).
+  DECRED_VERSION: '2.1.5'
 
 jobs:
   build-and-push:
@@ -29,18 +32,14 @@ jobs:
         id: image
         run: echo "name=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/decred" >> $GITHUB_OUTPUT
 
-      - name: Set Decred version
+      - name: Resolve Decred version
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.decred_version }}" >> $GITHUB_OUTPUT
-            echo "tag=${{ github.event.inputs.decred_version }}" >> $GITHUB_OUTPUT
-          else
-            # Extract version from git tag (v2.1.5 -> 2.1.5)
-            TAG="${{ github.ref_name }}"
-            echo "version=${TAG#v}" >> $GITHUB_OUTPUT
-            echo "tag=${TAG#v}" >> $GITHUB_OUTPUT
-          fi
+          # The Decred version is independent of the plugin's git tag.
+          # Use the workflow_dispatch override if provided, else the DECRED_VERSION env.
+          VERSION="${{ github.event.inputs.decred_version }}"
+          [ -z "$VERSION" ] && VERSION="${{ env.DECRED_VERSION }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -58,5 +57,5 @@ jobs:
           build-args: |
             DECRED_VERSION=${{ steps.version.outputs.version }}
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ steps.version.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ steps.version.outputs.version }}
             ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:latest

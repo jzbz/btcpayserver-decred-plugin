@@ -16,3 +16,15 @@ public class WalletGetInfoResponse
     [JsonProperty("txfee")]
     public decimal TxFee { get; set; }
 }
+
+public class SyncStatusResponse
+{
+    [JsonProperty("synced")]
+    public bool Synced { get; set; }
+
+    [JsonProperty("initialblockdownload")]
+    public bool InitialBlockDownload { get; set; }
+
+    [JsonProperty("headersfetchprogress")]
+    public float HeadersFetchProgress { get; set; }
+}

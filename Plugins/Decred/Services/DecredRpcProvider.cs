@@ -82,11 +82,19 @@ public class DecredRpcProvider
             summary.WalletAvailable = true;
             summary.UpdatedAt = DateTimeOffset.UtcNow;
 
-            // dcrwallet in SPV mode syncs headers then blocks.
-            // Consider synced if we have blocks and the height is recent.
-            // A more robust check could compare against peer-reported heights,
-            // but for now trust that dcrwallet reports accurately.
-            summary.Synced = walletInfo.Blocks > 0;
+            try
+            {
+                // dcrwallet reports its own sync state; trust it rather than
+                // inferring from the block height.
+                var syncStatus = await walletClient.SendCommandAsync<SyncStatusResponse>(
+                    "syncstatus", cancellationToken: cancellationToken);
+                summary.Synced = syncStatus.Synced;
+            }
+            catch (JsonRpcException)
+            {
+                // Wallet does not support syncstatus; fall back to the crude check.
+                summary.Synced = walletInfo.Blocks > 0;
+            }
         }
         catch (Exception ex)
         {

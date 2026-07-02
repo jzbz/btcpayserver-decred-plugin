@@ -14,7 +14,7 @@
             <div class="card-body">
                 <div>
                     <span class="fs-4">@Model.SpendableBalance @Model.CryptoCode</span>
-                    <span class="text-muted ms-2">spendable</span>
+                    <span class="text-muted ms-2">spendable in account '@Model.AccountName'</span>
                 </div>
                 @if (Model.TotalBalance != Model.SpendableBalance)
                 {

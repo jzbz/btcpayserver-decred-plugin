@@ -103,18 +103,21 @@ public class DecredListener : EventHostedServiceBase
 
             var invoices = await _invoiceRepository.GetMonitoredInvoices(Pmi, cancellationToken);
 
-            foreach (var detail in tx.Details.Where(d => d.Category == "receive"))
+            // A transaction can pay the same address through multiple outputs;
+            // sum them so the payment is not undercounted.
+            var receivedByAddress = tx.Details
+                .Where(d => d.Category == "receive" && d.Address != null)
+                .GroupBy(d => d.Address)
+                .ToDictionary(g => g.Key, g => g.Sum(d => d.Amount));
+
+            foreach (var invoice in invoices)
             {
-                if (detail.Address == null) continue;
+                var prompt = invoice.GetPaymentPrompt(Pmi);
+                if (prompt?.Destination == null) continue;
+                if (!receivedByAddress.TryGetValue(prompt.Destination, out var amount)) continue;
 
-                foreach (var invoice in invoices)
-                {
-                    var prompt = invoice.GetPaymentPrompt(Pmi);
-                    if (prompt?.Destination != detail.Address) continue;
-
-                    await HandlePaymentData(cryptoCode, invoice, tx.TxId,
-                        detail.Amount, tx.Confirmations, cancellationToken);
-                }
+                await HandlePaymentData(cryptoCode, invoice, tx.TxId,
+                    amount, tx.Confirmations, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -136,10 +139,14 @@ public class DecredListener : EventHostedServiceBase
 
             if (txs == null) return;
 
-            foreach (var tx in txs.Where(t => t.Category == "receive"))
+            // One entry per output: sum outputs of the same transaction paying
+            // this address so the payment is not undercounted.
+            foreach (var group in txs
+                .Where(t => t.Category == "receive" && t.Address == prompt.Destination)
+                .GroupBy(t => t.TxId))
             {
-                await HandlePaymentData(cryptoCode, invoice, tx.TxId,
-                    tx.Amount, tx.Confirmations, cancellationToken);
+                await HandlePaymentData(cryptoCode, invoice, group.Key,
+                    group.Sum(t => t.Amount), group.First().Confirmations, cancellationToken);
             }
         }
         catch (JsonRpcException)
@@ -159,10 +166,12 @@ public class DecredListener : EventHostedServiceBase
 
         if (txs == null) return;
 
-        foreach (var tx in txs.Where(t => t.Category == "receive" && t.Address == prompt.Destination))
+        foreach (var group in txs
+            .Where(t => t.Category == "receive" && t.Address == prompt.Destination)
+            .GroupBy(t => t.TxId))
         {
-            await HandlePaymentData(cryptoCode, invoice, tx.TxId,
-                tx.Amount, tx.Confirmations, cancellationToken);
+            await HandlePaymentData(cryptoCode, invoice, group.Key,
+                group.Sum(t => t.Amount), group.First().Confirmations, cancellationToken);
         }
     }
 

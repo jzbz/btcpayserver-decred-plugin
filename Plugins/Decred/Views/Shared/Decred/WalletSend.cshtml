@@ -53,7 +53,9 @@
                 </div>
                 <div class="card-footer">
                     <button type="submit" class="btn btn-primary">Send Transaction</button>
-                    <a href="/stores/@Context.GetRouteValue("storeId")/decredlike/@Model.CryptoCode" class="btn btn-secondary ms-2">Back to Settings</a>
+                    <a asp-controller="DecredLikeStore" asp-action="GetStoreDecredLikePaymentMethod"
+                       asp-route-storeId="@Context.GetRouteValue("storeId")" asp-route-cryptoCode="@Model.CryptoCode"
+                       class="btn btn-secondary ms-2">Back to Settings</a>
                 </div>
             </div>
         </form>

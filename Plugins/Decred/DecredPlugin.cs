@@ -1,6 +1,8 @@
 using System;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
@@ -93,6 +95,7 @@ public class DecredPlugin : BaseBTCPayServerPlugin
             var walletUri = Environment.GetEnvironmentVariable(prefix + "WALLET_URI");
             var username = Environment.GetEnvironmentVariable(prefix + "RPC_USERNAME");
             var password = Environment.GetEnvironmentVariable(prefix + "RPC_PASSWORD");
+            var certPath = Environment.GetEnvironmentVariable(prefix + "RPC_CERT");
 
             if (walletUri == null)
                 return config;
@@ -101,7 +104,8 @@ public class DecredPlugin : BaseBTCPayServerPlugin
             {
                 WalletRpcUri = new Uri(walletUri),
                 Username = username,
-                Password = password
+                Password = password,
+                RpcCertificate = LoadRpcCertificate(certPath)
             };
 
             return config;
@@ -112,13 +116,28 @@ public class DecredPlugin : BaseBTCPayServerPlugin
             {
                 var config = provider.GetRequiredService<DecredLikeConfiguration>();
                 var handler = new HttpClientHandler();
-                // dcrd/dcrwallet use self-signed TLS certs
-                handler.ServerCertificateCustomValidationCallback =
-                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+                handler.ServerCertificateCustomValidationCallback = (_, cert, _, _) =>
+                {
+                    // Pin dcrwallet's rpc.cert when configured (BTCPAY_DCR_RPC_CERT).
+                    if (config.DecredLikeConfigurationItems.TryGetValue("DCR", out var item) &&
+                        item.RpcCertificate != null)
+                    {
+                        return cert != null &&
+                            cert.RawData.AsSpan().SequenceEqual(item.RpcCertificate.RawData);
+                    }
+
+                    // dcrd/dcrwallet use self-signed TLS certs; without a pinned cert
+                    // accept any, as the RPC endpoint lives on a private network.
+                    return true;
+                };
                 return handler;
             })
             .ConfigureHttpClient((provider, client) =>
             {
+                // Keep RPC calls from stalling the polling loop when the wallet
+                // endpoint is unreachable.
+                client.Timeout = TimeSpan.FromSeconds(15);
+
                 var config = provider.GetRequiredService<DecredLikeConfiguration>();
                 if (config.DecredLikeConfigurationItems.TryGetValue("DCR", out var item) &&
                     !string.IsNullOrEmpty(item.Username))
@@ -129,5 +148,19 @@ public class DecredPlugin : BaseBTCPayServerPlugin
                         new AuthenticationHeaderValue("Basic", credentials);
                 }
             });
+    }
+
+    static X509Certificate2 LoadRpcCertificate(string certPath)
+    {
+        if (string.IsNullOrWhiteSpace(certPath))
+            return null;
+
+        if (!File.Exists(certPath))
+            throw new InvalidOperationException(
+                $"BTCPAY_DCR_RPC_CERT points to '{certPath}' but the file does not exist.");
+
+        // Fail closed: if the operator asked for pinning and the cert cannot be
+        // loaded, refuse to start rather than silently accepting any certificate.
+        return X509Certificate2.CreateFromPem(File.ReadAllText(certPath));
     }
 }

@@ -39,7 +39,9 @@
                 <h5 class="card-title mb-0">Wallet</h5>
             </div>
             <div class="card-body">
-                <a href="/stores/@Context.GetRouteValue("storeId")/decredlike/@Model.CryptoCode/send" class="btn btn-primary">Send</a>
+                <a asp-controller="DecredLikeStore" asp-action="WalletSend"
+                   asp-route-storeId="@Context.GetRouteValue("storeId")" asp-route-cryptoCode="@Model.CryptoCode"
+                   class="btn btn-primary">Send</a>
             </div>
         </div>
 

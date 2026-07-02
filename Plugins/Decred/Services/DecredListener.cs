@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
 using BTCPayServer.Events;
 using BTCPayServer.HostedServices;
@@ -117,7 +118,7 @@ public class DecredListener : EventHostedServiceBase
                 if (!receivedByAddress.TryGetValue(prompt.Destination, out var amount)) continue;
 
                 await HandlePaymentData(cryptoCode, invoice, tx.TxId,
-                    amount, tx.Confirmations, cancellationToken);
+                    amount, tx.Confirmations, tx.Time, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -145,8 +146,9 @@ public class DecredListener : EventHostedServiceBase
                 .Where(t => t.Category == "receive" && t.Address == prompt.Destination)
                 .GroupBy(t => t.TxId))
             {
+                var first = group.First();
                 await HandlePaymentData(cryptoCode, invoice, group.Key,
-                    group.Sum(t => t.Amount), group.First().Confirmations, cancellationToken);
+                    group.Sum(t => t.Amount), first.Confirmations, first.Time, cancellationToken);
             }
         }
         catch (JsonRpcException)
@@ -170,13 +172,14 @@ public class DecredListener : EventHostedServiceBase
             .Where(t => t.Category == "receive" && t.Address == prompt.Destination)
             .GroupBy(t => t.TxId))
         {
+            var first = group.First();
             await HandlePaymentData(cryptoCode, invoice, group.Key,
-                group.Sum(t => t.Amount), group.First().Confirmations, cancellationToken);
+                group.Sum(t => t.Amount), first.Confirmations, first.Time, cancellationToken);
         }
     }
 
     async Task HandlePaymentData(string cryptoCode, InvoiceEntity invoice,
-        string txId, decimal amount, long confirmations, CancellationToken cancellationToken)
+        string txId, decimal amount, long confirmations, long time, CancellationToken cancellationToken)
     {
         if (!_handlers.TryGetValue(Pmi, out var handler))
             return;
@@ -197,7 +200,7 @@ public class DecredListener : EventHostedServiceBase
             Address = prompt.Destination
         };
 
-        var status = GetPaymentStatus(confirmations, prompt);
+        var status = GetPaymentStatus(confirmations, prompt, invoice);
 
         if (existing != null)
         {
@@ -215,7 +218,7 @@ public class DecredListener : EventHostedServiceBase
         var newPayment = new PaymentData
         {
             Id = $"{txId}#{prompt.Destination}",
-            Created = DateTimeOffset.UtcNow,
+            Created = time > 0 ? DateTimeOffset.FromUnixTimeSeconds(time) : DateTimeOffset.UtcNow,
             Status = status,
             Amount = amount,
             Currency = cryptoCode
@@ -237,22 +240,24 @@ public class DecredListener : EventHostedServiceBase
             invoice.Id, amount, txId, confirmations);
     }
 
-    static PaymentStatus GetPaymentStatus(long confirmations, PaymentPrompt prompt)
+    static PaymentStatus GetPaymentStatus(long confirmations, PaymentPrompt prompt, InvoiceEntity invoice)
     {
         var promptDetails = prompt.Details?.ToObject<DecredPaymentPromptDetails>();
-        int requiredConfirmations;
-
-        if (promptDetails?.InvoiceSettledConfirmationThreshold != null)
-        {
-            requiredConfirmations = promptDetails.InvoiceSettledConfirmationThreshold.Value;
-        }
-        else
-        {
-            requiredConfirmations = 1;
-        }
+        var requiredConfirmations = promptDetails?.InvoiceSettledConfirmationThreshold
+            ?? ConfirmationRequired(invoice.SpeedPolicy);
 
         return confirmations >= requiredConfirmations
             ? PaymentStatus.Settled
             : PaymentStatus.Processing;
     }
+
+    // Mirrors the mapping the core Bitcoin listener uses for its speed policy.
+    static int ConfirmationRequired(SpeedPolicy speedPolicy) => speedPolicy switch
+    {
+        SpeedPolicy.HighSpeed => 0,
+        SpeedPolicy.MediumSpeed => 1,
+        SpeedPolicy.LowMediumSpeed => 2,
+        SpeedPolicy.LowSpeed => 6,
+        _ => 6
+    };
 }

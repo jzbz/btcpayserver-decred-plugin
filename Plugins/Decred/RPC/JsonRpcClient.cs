@@ -57,7 +57,10 @@ public class JsonRpcClient
             throw new JsonRpcException(errorCode, errorMessage);
         }
 
-        return responseJson["result"].ToObject<T>();
+        var result = responseJson["result"];
+        if (result == null || result.Type == JTokenType.Null)
+            return default;
+        return result.ToObject<T>();
     }
 
     public Task SendCommandAsync(string method, object[] parameters = null,

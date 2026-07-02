@@ -22,6 +22,8 @@ If you already run BTCPay Server via [btcpayserver-docker](https://github.com/bt
 
    Set a passphrase and **save the seed phrase** - this is the wallet backup. To restore an existing wallet, answer "yes" when asked if you have an existing seed.
 
+   Each invoice reserves a fresh address past the wallet's gap limit, so when restoring from seed pass a raised gap limit (the compose fragment runs the wallet with `--gaplimit=200`) or funds received on later addresses will not be discovered.
+
 3. Enable Decred and start the wallet. The wallet passphrase must be written to the deployment's `.env` file (not just exported) so `dcrwallet` can unlock on every start. `btcpay-setup.sh` persists only its own known variables, but it re-reads `$BTCPAY_BASE_DIRECTORY/.env` on every (re)start - so a plain `export` of a custom variable does not survive, and the wallet container ends up with an empty passphrase:
 
    ```bash
@@ -56,6 +58,7 @@ Set these environment variables on your BTCPay Server instance:
 | `BTCPAY_DCR_WALLET_URI` | dcrwallet RPC endpoint | `http://dcrwallet:9110` |
 | `BTCPAY_DCR_RPC_USERNAME` | RPC username | `btcpay` |
 | `BTCPAY_DCR_RPC_PASSWORD` | RPC password | `btcpay` |
+| `BTCPAY_DCR_RPC_CERT` | Optional path to dcrwallet's `rpc.cert`; when set, the RPC TLS certificate is pinned to it (otherwise any certificate is accepted) | `/etc/dcrwallet/rpc.cert` |
 
 Then install the plugin DLL manually by placing it in BTCPay Server's `Plugins` directory and restarting.
 

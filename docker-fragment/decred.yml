@@ -17,6 +17,9 @@ services:
       - --password=btcpay
       - --rpclisten=0.0.0.0:9110
       - --pass=${BTCPAY_DCR_WALLET_PASSPHRASE}
+      # Address generation ignores the gap limit (one address per invoice), so
+      # raise it to keep all addresses discoverable on a restore from seed.
+      - --gaplimit=200
     expose:
       - "9110"
     volumes:

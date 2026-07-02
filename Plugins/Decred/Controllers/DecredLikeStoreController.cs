@@ -90,8 +90,8 @@ public class DecredLikeStoreController : Controller
         await _storeRepo.UpdateStore(StoreData);
 
         TempData[WellKnownTempData.SuccessMessage] = $"{cryptoCode} payment method updated.";
-        var storeId = StoreData.Id;
-        return Redirect($"/stores/{storeId}/decredlike/{cryptoCode}");
+        return RedirectToAction(nameof(GetStoreDecredLikePaymentMethod),
+            new { storeId = StoreData.Id, cryptoCode });
     }
 
     // The dcrwallet instance is shared by the whole server, so sending funds is

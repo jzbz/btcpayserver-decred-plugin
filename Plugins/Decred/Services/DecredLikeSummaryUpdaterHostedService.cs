@@ -42,11 +42,9 @@ public class DecredLikeSummaryUpdaterHostedService : IHostedService, IDisposable
                 var cryptoCodes = _rpcProvider.GetCryptoCodes().ToList();
                 foreach (var cryptoCode in cryptoCodes)
                 {
-                    var previousHeight = _rpcProvider.GetSummary(cryptoCode)?.CurrentHeight ?? 0;
                     var previouslyAvailable = _rpcProvider.IsAvailable(cryptoCode);
                     await _rpcProvider.UpdateSummary(cryptoCode, cancellationToken);
                     var nowAvailable = _rpcProvider.IsAvailable(cryptoCode);
-                    var currentHeight = _rpcProvider.GetSummary(cryptoCode)?.CurrentHeight ?? 0;
 
                     if (previouslyAvailable != nowAvailable)
                     {
@@ -57,14 +55,14 @@ public class DecredLikeSummaryUpdaterHostedService : IHostedService, IDisposable
                     }
 
                     // Trigger a payment re-check on every poll cycle so the listener
-                    // catches payments even without external notifications: a block
-                    // event when the chain advanced, otherwise a synthetic tx poll to
-                    // pick up still-unconfirmed transactions.
+                    // catches payments even without external notifications.
                     if (nowAvailable)
                     {
-                        _eventAggregator.Publish(currentHeight != previousHeight
-                            ? new DecredEvent { CryptoCode = cryptoCode, BlockHash = "poll" }
-                            : new DecredEvent { CryptoCode = cryptoCode, TransactionHash = "poll" });
+                        _eventAggregator.Publish(new DecredEvent
+                        {
+                            CryptoCode = cryptoCode,
+                            TransactionHash = "poll"
+                        });
                     }
                 }
 

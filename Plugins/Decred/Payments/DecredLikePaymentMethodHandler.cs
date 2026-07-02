@@ -44,12 +44,8 @@ public class DecredLikePaymentMethodHandler : IPaymentMethodHandler
         var account = string.IsNullOrWhiteSpace(config.AccountName) ? "default" : config.AccountName;
 
         context.State = new Prepare(
-            ReservedAddress: Task.Run(async () =>
-            {
-                return await walletClient.SendCommandAsync<string>(
-                    "getnewaddress", [account, "ignore"]);
-            })
-        );
+            ReservedAddress: walletClient.SendCommandAsync<string>(
+                "getnewaddress", [account, "ignore"]));
 
         return Task.CompletedTask;
     }

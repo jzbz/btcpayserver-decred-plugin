@@ -1,7 +1,7 @@
 {
   "Identifier": "BTCPayServer.Plugins.Decred",
   "Name": "Decred",
-  "Version": "1.0.1",
+  "Version": "1.0.2",
   "Description": "This plugin extends BTCPay Server to enable users to receive payments via Decred.",
   "SystemPlugin": false,
   "Dependencies": [

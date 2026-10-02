@@ -1,12 +1,12 @@
 # Single image containing dcrd and dcrwallet binaries.
-# Build and publish as: joegruffins/decred:2.1.5 (or whatever your Docker Hub account is)
+# Build and publish as: joegruffins/decred:2.1.6 (or whatever your Docker Hub account is)
 # Usage:
 #   docker run joegruffins/decred dcrd [args...]
 #   docker run joegruffins/decred dcrwallet [args...]
 
 FROM debian:bookworm-slim AS builder
 
-ARG DECRED_VERSION=2.1.5
+ARG DECRED_VERSION=2.1.6
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 

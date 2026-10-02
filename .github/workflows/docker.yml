@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       decred_version:
-        description: 'Decred version to build (overrides DECRED_VERSION, e.g. 2.1.5)'
+        description: 'Decred version to build (overrides DECRED_VERSION, e.g. 2.1.6)'
         required: false
 
 env:
@@ -15,7 +15,7 @@ env:
   # Single source of truth for the Decred release packaged into the image.
   # This is the Decred version, NOT the plugin version - bump it when Decred
   # ships a new release (or override per-run via workflow_dispatch).
-  DECRED_VERSION: '2.1.5'
+  DECRED_VERSION: '2.1.6'
 
 jobs:
   build-and-push:
